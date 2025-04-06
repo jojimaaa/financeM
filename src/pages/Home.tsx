@@ -3,6 +3,7 @@ import "../App.css";
 import { db } from "../utils/db.js";
 import { Cabecalho } from "../components/Cabecalho.js";
 import { Tabela } from "../components/Tabela.js";
+import { dataType } from "../utils/db.js";
 
 export function Home() {
   const database = new db();

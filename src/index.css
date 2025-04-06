@@ -1,5 +1,5 @@
 @import url("https://fonts.googleapis.com/css2?family=Raleway:ital,wght@0,100..900;1,100..900&display=swap");
-@import "tailwindcss";  
+@import "tailwindcss";
 
 @theme {
   --font-raleway: "Raleway", sans-serif;
@@ -12,4 +12,6 @@
   --color-green6: #2d6a4f;
   --color-green7: #1b4332;
   --color-green8: #081c15;
+  --color-red-del0: #d04150;
+  --color-red-del1: #b73945;
 }
