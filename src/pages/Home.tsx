@@ -18,7 +18,7 @@ export function Home() {
     setData(result || null);
   };
   return (
-    <div className="w-screen h-screen bg-white">
+    <div className="w-full h-full bg-white">
       <div className="flex flex-col items-center w-full h-80 bg-green0 mt-10">
         <Tabela data={data} />
       </div>
