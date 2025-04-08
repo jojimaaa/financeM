@@ -1,24 +1,16 @@
-import { createClient } from "@supabase/supabase-js";
-import { z } from "zod";
+import { createClient, PostgrestError } from "@supabase/supabase-js";
+import { FormsSchema, Fluxo } from "../components/Types";
 
-const supabaseUrl = "https://uormsldzwpbrkppzgayt.supabase.co";
-const supabaseKey =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVvcm1zbGR6d3BicmtwcHpnYXl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDMxODk1ODksImV4cCI6MjA1ODc2NTU4OX0.ETb-a4WA6wLbNmFSIW5VHC79TUDDOGc5dLNUMt8fq4U";
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const supabaseAdminKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
 export const supabase = createClient(supabaseUrl, supabaseKey);
-
-const FluxoFormSchema = z.object({
-  data_fluxo_field: z.date({
-    required_error: "A date of birth is required.",
-  }),
-  valor_field: z.string(),
-  is_entrada_field: z.boolean(),
-  tipo_nome_field: z.string(),
-  categoria_nome_field: z.string(),
-  descricao_fluxo_field: z.string(),
-});
-
+export const admin = createClient(supabaseUrl, supabaseAdminKey);
 export class db {
-  async getFluxo() {
+  async getFluxo(): Promise<{
+    data: null | Fluxo[];
+    error: null | PostgrestError;
+  }> {
     const uid = await this.getUserID();
     console.log(uid);
     const { data, error } = await supabase
@@ -37,16 +29,13 @@ export class db {
       .eq("id_pessoa", uid);
     if (error) {
       console.error("Error fetching" + error);
-      return;
+      return { data, error };
     }
     console.log("Data fetched successfully:", data);
-    return data;
+    return { data, error };
   }
 
-  fluxo_equals(
-    o: z.infer<typeof FluxoFormSchema>,
-    d: z.infer<typeof FluxoFormSchema>
-  ) {
+  fluxo_equals(o: FormsSchema, d: FormsSchema) {
     if (
       o.data_fluxo_field != d.data_fluxo_field ||
       o.valor_field != d.valor_field ||
@@ -59,11 +48,7 @@ export class db {
     return true;
   }
 
-  async updateFluxo(
-    id_fluxo: number,
-    d: z.infer<typeof FluxoFormSchema>,
-    o: z.infer<typeof FluxoFormSchema>
-  ) {
+  async updateFluxo(id_fluxo: number, d: FormsSchema, o: FormsSchema) {
     if (this.fluxo_equals(d, o)) {
       console.error("Nenhum valor alterado");
       return;
@@ -85,7 +70,11 @@ export class db {
     if (id_categ_quary) {
       console.log("foi2");
       id_categoria = id_categ_quary[0].id_categoria;
-    } else return;
+    }
+    if (error3) {
+      console.error(error3);
+      return;
+    }
 
     const { data: id_tipo_quary, error: error2 } = await supabase
       .from("tipo")
@@ -94,7 +83,11 @@ export class db {
     if (id_tipo_quary) {
       console.log("foi");
       id_tipo = id_tipo_quary[0].id_tipo;
-    } else return;
+    }
+    if (error2) {
+      console.error(error2);
+      return;
+    }
 
     const { data, error } = await supabase
       .from("fluxo")
@@ -160,7 +153,50 @@ export class db {
     }
   };
 
-  async insertFluxo(d: z.infer<typeof FluxoFormSchema>) {
+  getNome = async (id_pessoa: string) => {
+    const { data, error } = await supabase
+      .from("pessoa")
+      .select("nome")
+      .eq("id_pessoa", id_pessoa)
+      .single();
+    if (error) {
+      console.error("erro ao pegar nome", error);
+      return null;
+    }
+    if (data) return data.nome;
+    else {
+      console.error("Usuário não logado");
+      return "";
+    }
+  };
+
+  updateNome = async (id_pessoa: string, nome: string) => {
+    console.log(id_pessoa, nome);
+    const { data, error } = await supabase
+      .from("pessoa")
+      .update({ nome })
+      .eq("id_pessoa", id_pessoa);
+    if (error) {
+      console.error("erro ao atualizar nome", error);
+      return { data, error };
+    }
+    if (data) return { data, error };
+    else {
+      console.error("Usuário não logado");
+      return { data, error };
+    }
+  };
+
+  excluiConta = async (id_pessoa: string) => {
+    const { data, error } = await admin.auth.admin.deleteUser(id_pessoa);
+    if (error) {
+      console.error("Erro deletando conta: ", id_pessoa, ":", error);
+      return;
+    }
+    return data;
+  };
+
+  async insertFluxo(d: FormsSchema) {
     const id_pessoa = await this.getUserID();
     console.log(id_pessoa);
 
@@ -183,7 +219,10 @@ export class db {
       if (id_categ_quary) {
         console.log("foi2");
         id_categoria = id_categ_quary[0].id_categoria;
-      } else return;
+      } else if (error3) {
+        console.error(error3);
+        return;
+      }
 
       const { data: id_tipo_quary, error: error2 } = await supabase
         .from("tipo")
@@ -192,7 +231,10 @@ export class db {
       if (id_tipo_quary) {
         console.log("foi");
         id_tipo = id_tipo_quary[0].id_tipo;
-      } else return;
+      } else if (error2) {
+        console.error(error2);
+        return;
+      }
 
       const { error } = await supabase.from("fluxo").insert({
         id_pessoa,

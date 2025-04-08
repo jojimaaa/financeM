@@ -45,7 +45,7 @@ export function Cabecalho() {
   if (userid) {
     return (
       <div className="bg-green7 w-screen h-18 flex flex-row items-center p-2 columns-5">
-        <div className="flex flex-rows text-3xl  font-raleway text-white w-1/4 items-center justify-center pl">
+        <div className="flex flex-rows text-3xl  font-raleway text-white w-1/5 items-center justify-center pl">
           <img
             src="/src/assets/folha.png"
             alt="Logo"
@@ -54,7 +54,7 @@ export function Cabecalho() {
           <h1>FINANCEM</h1>
         </div>
 
-        <div className="flex flex-row items-center justify-center w-1/4">
+        <div className="flex flex-row items-center justify-center w-1/5">
           <Link to={"/extrato"}>
             <button
               className="text-white font-raleway text-lg px-2 py-1 hover:underline hover:cursor-pointer transition active:bg-green6 active:shadow-lg"
@@ -66,11 +66,23 @@ export function Cabecalho() {
             </button>
           </Link>
         </div>
+        <div className="flex flex-row items-center justify-center w-1/5">
+          <Link to={"/conta"}>
+            <button
+              className="text-white font-raleway text-lg px-2 py-1 hover:underline hover:cursor-pointer transition active:bg-green6 active:shadow-lg"
+              onClick={() => {
+                console.log("Extrato");
+              }}
+            >
+              Conta
+            </button>
+          </Link>
+        </div>
 
         <div className="flex flex-row justify-center w-1/4">
           <FluxoButtonDialog buttonText="Adicionar Fluxo" />
         </div>
-        <div className="flex flex-row justify-center items-center w-1/4">
+        <div className="flex flex-row justify-center items-center w-1/5">
           <button
             className=" text-center hover:underline hover:cursor-pointer text-red-200"
             onClick={Logout}
