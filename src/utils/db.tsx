@@ -1,5 +1,6 @@
 import { createClient, PostgrestError } from "@supabase/supabase-js";
 import { FormsSchema, Fluxo } from "../components/Types";
+import { format } from "date-fns";
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -54,7 +55,11 @@ export class db {
       return;
     }
 
-    const data_fluxo = d.data_fluxo_field.toISOString().split("T")[0];
+    console.log(d.data_fluxo_field);
+    console.log(o.data_fluxo_field);
+
+    const data_fluxo = format(d.data_fluxo_field, "yyyy-MM-dd");
+    console.log(data_fluxo);
     const valor = d.valor_field;
 
     const is_entrada = d.is_entrada_field;
@@ -203,7 +208,7 @@ export class db {
     if (!id_pessoa) {
       console.error("Erro inserindo dados, usuário não logado!");
     } else {
-      const data_fluxo = d.data_fluxo_field.toISOString().split("T")[0];
+      const data_fluxo = format(d.data_fluxo_field, "yyyy-MM-dd");
       const valor = d.valor_field;
 
       const is_entrada = d.is_entrada_field;

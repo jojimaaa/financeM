@@ -1,5 +1,5 @@
 import { columns } from "../components/columns.tsx";
-import { db, supabase } from "../utils/db.js";
+import { db } from "../utils/db.js";
 import { DataTable } from "../components/extrato-table.js";
 import { useEffect, useState } from "react";
 import { Fluxo } from "../components/columns";
