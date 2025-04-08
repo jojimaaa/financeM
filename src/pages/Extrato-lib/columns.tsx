@@ -77,6 +77,7 @@ export const columns: ColumnDef<Fluxo>[] = [
 ];
 
 const database = new db();
+
 function ActionsCell({ row }: { row: any }) {
   const fluxo_original = row.original; // Get the original date object from the row
   const [displayValue, setDisplayValue] = useState(fluxo_original.valor);
@@ -189,6 +190,9 @@ function ActionsCell({ row }: { row: any }) {
     dateTest.setDate(day); // Set the new date
     return dateTest;
   }
+
+  
+
 
   return (
     <div className="flex justify-center gap-7 items-center">
@@ -394,6 +398,7 @@ function ActionsCell({ row }: { row: any }) {
       <Button
         size="icon"
         className="bg-red-del0 hover:bg-red-del1 hover:cursor-pointer"
+        onClick={handleDelete}
       >
         <Trash />
       </Button>

@@ -106,4 +106,16 @@ export class db {
     console.log(error);
     return data;
   }
+
+  async deleteFluxo(id_fluxo: number) {
+    const { data, error } = await supabase
+      .from("fluxo")
+      .delete()
+      .eq("id_fluxo", id_fluxo);
+    if (error) {
+      console.error("Erro deletando fluxo: ", id_fluxo, ":", error);
+      return;
+    }
+    return data;
+  }
 }
