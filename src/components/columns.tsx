@@ -7,7 +7,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Form,
   FormControl,
-  FormLabel,
   FormField,
   FormItem,
   FormMessage,
@@ -21,13 +20,20 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-import { db } from "../../utils/db.tsx";
+import { db } from "../utils/db.tsx";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { Trash, Pencil } from "lucide-react";
 import { CalendarIcon } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
-
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Popover,
   PopoverContent,
@@ -37,7 +43,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useForm } from "react-hook-form";
-import { useState } from "react";
+import { use, useEffect, useState } from "react";
 
 export type Fluxo = {
   id_fluxo: number;
@@ -53,6 +59,9 @@ export const columns: ColumnDef<Fluxo>[] = [
   {
     accessorKey: "data_fluxo",
     header: "Data",
+    cell: ({ row }: { row: any }) => (
+      <p>{formatDate(row.original.data_fluxo)}</p>
+    ),
   },
   {
     accessorKey: "valor",
@@ -75,12 +84,21 @@ export const columns: ColumnDef<Fluxo>[] = [
     cell: ({ row }: { row: any }) => <ActionsCell row={row} />,
   },
 ];
-
 const database = new db();
+
+const formatDate = (dateStr) => {
+  const [year, month, day] = dateStr.split("-");
+  let newDate = `${day}/${month}/${year}`;
+  return newDate;
+};
 
 function ActionsCell({ row }: { row: any }) {
   const fluxo_original = row.original; // Get the original date object from the row
   const [displayValue, setDisplayValue] = useState(fluxo_original.valor);
+  const [open, setOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [tipos, setTipos] = useState([]);
+  const [categorias, setCategorias] = useState([]);
   const FormSchema = z.object({
     data_fluxo_field: z.date({
       required_error: "A date of birth is required.",
@@ -108,6 +126,25 @@ function ActionsCell({ row }: { row: any }) {
 
   console.log(fluxo_original.data_fluxo);
   console.log(dateParse(fluxo_original.data_fluxo));
+
+  async function fetchData() {
+    const categorias = await database.getCategorias();
+    if (!categorias) {
+      console.error("erro nas categorias");
+    }
+    const tipos = await database.getTipos();
+    if (!tipos) {
+      console.error("erro nos tipos");
+    }
+    console.log(categorias);
+    console.log(tipos);
+    setTipos(tipos);
+    setCategorias(categorias);
+  }
+
+  useEffect(() => {
+    fetchData();
+  }, []);
 
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema), // Pass only the schema here
@@ -181,7 +218,8 @@ function ActionsCell({ row }: { row: any }) {
   async function onSubmit(data: z.infer<typeof FormSchema>) {
     console.log(fluxo_original.valor.replace("$", ""));
     console.log(z.coerce.number().parse(fluxo_original.valor.replace("$", "")));
-    database.updateFluxo(fluxo_original.id_fluxo, data, original_values);
+    await database.updateFluxo(fluxo_original.id_fluxo, data, original_values);
+    window.location.reload();
   }
 
   function dateParse(date: string) {
@@ -191,8 +229,20 @@ function ActionsCell({ row }: { row: any }) {
     return dateTest;
   }
 
-  
-
+  async function handleDelete(id_fluxo: number) {
+    try {
+      setIsDeleting(true);
+      const data = await database.deleteFluxo(id_fluxo);
+      if (data) console.log("Deletado", data);
+      else console.error("Erro ao deletar");
+      setOpen(false);
+    } catch (error) {
+      console.error("Error deleting item:", error);
+    } finally {
+      setIsDeleting(false);
+      window.location.reload();
+    }
+  }
 
   return (
     <div className="flex justify-center gap-7 items-center">
@@ -200,12 +250,12 @@ function ActionsCell({ row }: { row: any }) {
         <PopoverTrigger asChild>
           <Button
             size="icon"
-            className="bg-green1 hover:bg-green2 hover:cursor-pointer text-green8"
+            className="bg-green3 hover:bg-green4 hover:cursor-pointer text-green8"
           >
             <Pencil />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-80 bg-green1">
+        <PopoverContent className="w-80">
           <div className="space-y-2">
             <h4 className="font-raleway leading-none">Editar Fluxo</h4>
             <p className="text-sm text-green8/60">
@@ -230,16 +280,16 @@ function ActionsCell({ row }: { row: any }) {
                             <Button
                               variant={"outline"}
                               className={cn(
-                                "w-[240px] pl-3 text-left font-normal",
+                                "w-[240px] pl-3 text-left font-normal text-green8 hover:bg-green8 hover:text-green0",
                                 !field.value && "text-muted-foreground"
                               )}
                             >
                               {field.value ? (
                                 format(field.value, "PPP")
                               ) : (
-                                <span>Pick a date</span>
+                                <span>Data</span>
                               )}
-                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                              <CalendarIcon className="ml-auto h-4 w-4 opacity-60" />
                             </Button>
                           </FormControl>
                         </PopoverTrigger>
@@ -266,6 +316,7 @@ function ActionsCell({ row }: { row: any }) {
                       <Label>Valor</Label>
                       <FormControl>
                         <Input
+                          className="hover:bg-green8 hover:text-green0 file:bg_green8 file:text:green0"
                           type="text"
                           {...field}
                           defaultValue={displayValue}
@@ -288,14 +339,21 @@ function ActionsCell({ row }: { row: any }) {
                         defaultValue={field.value}
                       >
                         <FormControl>
-                          <SelectTrigger>
+                          <SelectTrigger className="hover:bg-green8 hover:text-green0">
                             <SelectValue placeholder={field.value} />
                           </SelectTrigger>
                         </FormControl>
-                        <SelectContent>
-                          <SelectItem value="Mensal">Mensal</SelectItem>
-                          <SelectItem value="Diário">Diário</SelectItem>
-                          <SelectItem value="Economia">Economia</SelectItem>
+                        <SelectContent className="bg-green0 text-green8">
+                          {tipos.map((tipo) => {
+                            return (
+                              <SelectItem
+                                className="hover:bg-green8 hover:text-green0"
+                                value={tipo.tipo_nome}
+                              >
+                                {tipo.tipo_nome}
+                              </SelectItem>
+                            );
+                          })}
                         </SelectContent>
                       </Select>
                     </FormItem>
@@ -313,39 +371,21 @@ function ActionsCell({ row }: { row: any }) {
                         defaultValue={field.value}
                       >
                         <FormControl>
-                          <SelectTrigger>
+                          <SelectTrigger className="hover:bg-green8 hover:text-green0">
                             <SelectValue placeholder={field.value} />
                           </SelectTrigger>
                         </FormControl>
-                        <SelectContent>
-                          <SelectItem value="Uber">Uber</SelectItem>
-                          <SelectItem value="Mercado">Mercado</SelectItem>
-                          <SelectItem value="Farmácia">Farmácia</SelectItem>
-                          <SelectItem value="Salário">Salário</SelectItem>
-                          <SelectItem value="Restaurante">
-                            Restaurante
-                          </SelectItem>
-                          <SelectItem value="Transporte público">
-                            Transporte público
-                          </SelectItem>
-                          <SelectItem value="Educação">Educação</SelectItem>
-                          <SelectItem value="Saúde">Saúde</SelectItem>
-                          <SelectItem value="Lazer">Lazer</SelectItem>
-                          <SelectItem value="Viagem">Viagem</SelectItem>
-                          <SelectItem value="Compras online">
-                            Compras online
-                          </SelectItem>
-                          <SelectItem value="Conta de água">
-                            Conta de água
-                          </SelectItem>
-                          <SelectItem value="Prestações">Prestações</SelectItem>
-                          <SelectItem value="Impostos">Impostos</SelectItem>
-                          <SelectItem value="Reserva de Emergência">
-                            Reserva de Emergência
-                          </SelectItem>
-                          <SelectItem value="Investimentos">
-                            Investimentos
-                          </SelectItem>
+                        <SelectContent className="bg-green0 text-green8">
+                          {(categorias || []).map((categoria) => {
+                            return (
+                              <SelectItem
+                                className="hover:bg-green8 hover:text-green0"
+                                value={categoria.categoria_nome}
+                              >
+                                {categoria.categoria_nome}
+                              </SelectItem>
+                            );
+                          })}
                         </SelectContent>
                       </Select>
                     </FormItem>
@@ -359,7 +399,7 @@ function ActionsCell({ row }: { row: any }) {
                     <FormItem className="flex flex-row items-center space-x-3 space-y-0 border rounded-md p-1">
                       <FormControl>
                         <Checkbox
-                          className="bg-green1 [state=checked]:bg-green8"
+                          className="bg-green2 border-green3 [state=checked]:bg-green8"
                           checked={field.value}
                           onCheckedChange={field.onChange}
                         />
@@ -379,6 +419,7 @@ function ActionsCell({ row }: { row: any }) {
                       <Label>Descrição</Label>
                       <FormControl>
                         <Input
+                          className="hover:bg-green8 hover:text-green0"
                           placeholder={fluxo_original.descricao_fluxo}
                           {...field}
                         />
@@ -396,12 +437,44 @@ function ActionsCell({ row }: { row: any }) {
         </PopoverContent>
       </Popover>
       <Button
+        onClick={() => setOpen(true)}
         size="icon"
         className="bg-red-del0 hover:bg-red-del1 hover:cursor-pointer"
-        onClick={handleDelete}
       >
         <Trash />
       </Button>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="sm:max-w-md font-raleway">
+          <DialogHeader>
+            <DialogTitle className="text-green8">
+              Confirmar Exclusão
+            </DialogTitle>
+            <DialogDescription className="text-green7/80">
+              Tem certeza que quer deletar esse fluxo? Essa ação não pode ser
+              desfeita
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex flex-row justify-end gap-2 sm:justify-end">
+            <Button
+              variant="outline"
+              className="bg-green8 text-green0 hover:text-green0 cursor-pointer hover:bg-green7 transition"
+              onClick={() => setOpen(false)}
+              disabled={isDeleting}
+            >
+              Cancelar
+            </Button>
+            <Button
+              className="bg-red-del0 hover:bg-red-del1 hover:cursor-pointer transition"
+              variant="destructive"
+              onClick={async () => await handleDelete(fluxo_original.id_fluxo)}
+              disabled={isDeleting}
+            >
+              {isDeleting ? "Deletando..." : "Deletar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

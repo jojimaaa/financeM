@@ -2,7 +2,8 @@ import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 
 const supabaseUrl = "https://uormsldzwpbrkppzgayt.supabase.co";
-const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVvcm1zbGR6d3BicmtwcHpnYXl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDMxODk1ODksImV4cCI6MjA1ODc2NTU4OX0.ETb-a4WA6wLbNmFSIW5VHC79TUDDOGc5dLNUMt8fq4U";
+const supabaseKey =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVvcm1zbGR6d3BicmtwcHpnYXl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDMxODk1ODksImV4cCI6MjA1ODc2NTU4OX0.ETb-a4WA6wLbNmFSIW5VHC79TUDDOGc5dLNUMt8fq4U";
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
 const FluxoFormSchema = z.object({
@@ -18,8 +19,12 @@ const FluxoFormSchema = z.object({
 
 export class db {
   async getFluxo() {
-    const { data, error } = await supabase.from("fluxo").select(
-      `
+    const uid = await this.getUserID();
+    console.log(uid);
+    const { data, error } = await supabase
+      .from("fluxo")
+      .select(
+        `
           id_fluxo,
           data_fluxo,
           valor,
@@ -28,7 +33,8 @@ export class db {
           descricao_fluxo,
           is_entrada
         `
-    );
+      )
+      .eq("id_pessoa", uid);
     if (error) {
       console.error("Error fetching" + error);
       return;
@@ -117,5 +123,91 @@ export class db {
       return;
     }
     return data;
+  }
+
+  async getCategorias() {
+    const { data, error } = await supabase
+      .from("categoria_fluxo")
+      .select("categoria_nome");
+    if (error) {
+      console.error("Error fetching categories: ", error);
+      return;
+    }
+    return data;
+  }
+
+  async getTipos() {
+    const { data, error } = await supabase.from("tipo").select("tipo_nome");
+    if (error) {
+      console.error("Error fetching types: ", error);
+      return;
+    }
+    return data;
+  }
+
+  getUserID = async () => {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (session?.user?.id) {
+      const userId = session.user.id;
+      console.log(userId);
+      console.log(typeof userId);
+      return userId;
+    } else {
+      console.error("O usuário não está logado");
+      return null;
+    }
+  };
+
+  async insertFluxo(d: z.infer<typeof FluxoFormSchema>) {
+    const id_pessoa = await this.getUserID();
+    console.log(id_pessoa);
+
+    if (!id_pessoa) {
+      console.error("Erro inserindo dados, usuário não logado!");
+    } else {
+      const data_fluxo = d.data_fluxo_field.toISOString().split("T")[0];
+      const valor = d.valor_field;
+
+      const is_entrada = d.is_entrada_field;
+
+      let id_categoria, id_tipo;
+
+      const descricao_fluxo = d.descricao_fluxo_field;
+
+      const { data: id_categ_quary, error: error3 } = await supabase
+        .from("categoria_fluxo")
+        .select("id_categoria")
+        .eq("categoria_nome", d.categoria_nome_field);
+      if (id_categ_quary) {
+        console.log("foi2");
+        id_categoria = id_categ_quary[0].id_categoria;
+      } else return;
+
+      const { data: id_tipo_quary, error: error2 } = await supabase
+        .from("tipo")
+        .select("id_tipo")
+        .eq("tipo_nome", d.tipo_nome_field);
+      if (id_tipo_quary) {
+        console.log("foi");
+        id_tipo = id_tipo_quary[0].id_tipo;
+      } else return;
+
+      const { error } = await supabase.from("fluxo").insert({
+        id_pessoa,
+        id_categoria,
+        id_tipo,
+        descricao_fluxo,
+        data_fluxo,
+        valor,
+        is_entrada,
+      });
+
+      if (error) {
+        console.error("Erro inserindo dados: ", error);
+        return;
+      }
+    }
   }
 }

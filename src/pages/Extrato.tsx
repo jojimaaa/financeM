@@ -1,18 +1,38 @@
-import { Fluxo, columns } from "./Extrato-lib/columns.js";
+import { Fluxo, columns } from "../components/columns.js";
 import "../App.css";
-import { db } from "../utils/db.js";
+import { db, supabase } from "../utils/db.js";
 import { Cabecalho } from "../components/Cabecalho.tsx";
-import { DataTable } from "./Extrato-lib/extrato-table.js";
+import { DataTable } from "../components/extrato-table.js";
 import { useEffect, useState } from "react";
 
 export function Extrato() {
   const database = new db();
   const [data, setData] = useState(null);
+  const [userid, setUserid] = useState("");
+  const [nomeuser, setNomeuser] = useState("");
 
   useEffect(() => {
     fetchData();
+    getUser();
   }, []);
 
+  const getUser = async () => {
+    const userId = await database.getUserID();
+    if (userId) {
+      setUserid(userId);
+
+      const { data, error } = await supabase
+        .from("pessoa")
+        .select("nome")
+        .eq("id_pessoa", userId)
+        .single();
+
+      if (data) setNomeuser(data.nome);
+      else console.error("Erro ao buscar nome:", error?.message);
+    } else {
+      console.error("O usuário não está logado");
+    }
+  };
   const fetchData = async () => {
     const result = await database.getFluxo();
     console.log(result);
@@ -27,8 +47,13 @@ export function Extrato() {
     );
   }
   return (
-    <div className="w=screen h-screen bg-green0 mt-3 mx-2">
-      <DataTable data={data} columns={columns} />
+    <div className="w=screen h-full mt-3 mx-2">
+      <div className="font-raleway text-4xl m-3">
+        <h1>Extrato de: {nomeuser}</h1>
+      </div>
+      <div className="bg-green0 w-full">
+        <DataTable data={data} columns={columns} />
+      </div>
     </div>
   );
 }

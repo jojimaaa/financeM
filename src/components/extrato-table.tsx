@@ -34,12 +34,15 @@ export function DataTable<TData, TValue>({
   return (
     <div>
       <Table>
-        <TableHeader className="bg-green1">
+        <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (
-            <TableRow key={headerGroup.id}>
+            <TableRow
+              className="text-green0 bg-green8 hover:bg-green8"
+              key={headerGroup.id}
+            >
               {headerGroup.headers.map((header) => {
                 return (
-                  <TableHead key={header.id}>
+                  <TableHead className="text-green0 bg-none" key={header.id}>
                     {header.isPlaceholder
                       ? null
                       : flexRender(
@@ -52,20 +55,29 @@ export function DataTable<TData, TValue>({
             </TableRow>
           ))}
         </TableHeader>
-        <TableBody className="font-raleway">
+        <TableBody className="font-raleway bg-red">
           {table.getRowModel().rows?.length ? (
-            table.getRowModel().rows.map((row) => (
-              <TableRow
-                key={row.id}
-                data-state={row.getIsSelected() && "selected"}
-              >
-                {row.getVisibleCells().map((cell) => (
-                  <TableCell key={cell.id}>
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </TableCell>
-                ))}
-              </TableRow>
-            ))
+            table.getRowModel().rows.map((row) => {
+              const dynamicClass = row.original.is_entrada
+                ? "bg-green0 hover:bg-green1"
+                : "bg-red-200 hover:bg-red-100";
+              return (
+                <TableRow
+                  className={dynamicClass}
+                  key={row.id}
+                  data-state={row.getIsSelected() && "selected"}
+                >
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell key={cell.id}>
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext()
+                      )}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              );
+            })
           ) : (
             <TableRow>
               <TableCell colSpan={columns.length} className="h-24 text-center">
