@@ -1,4 +1,4 @@
-import { db } from "../utils/db.js";
+
 export function Tabela(props) {
   if (props.data) {
     console.log(props.data);
