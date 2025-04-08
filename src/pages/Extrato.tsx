@@ -1,6 +1,7 @@
 import { Fluxo, columns } from "./Extrato-lib/columns.js";
 import "../App.css";
 import { db } from "../utils/db.js";
+import { Cabecalho } from "../components/Cabecalho.tsx";
 import { DataTable } from "./Extrato-lib/extrato-table.js";
 import { useEffect, useState } from "react";
 
