@@ -9,7 +9,7 @@ const FluxoFormSchema = z.object({
   data_fluxo_field: z.date({
     required_error: "A date of birth is required.",
   }),
-  valor_field: z.number(),
+  valor_field: z.string(),
   is_entrada_field: z.boolean(),
   tipo_nome_field: z.string(),
   categoria_nome_field: z.string(),
@@ -64,10 +64,7 @@ export class db {
     }
 
     const data_fluxo = d.data_fluxo_field.toISOString().split("T")[0];
-    const valor = Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(d.valor_field);
+    const valor = d.valor_field;
 
     const is_entrada = d.is_entrada_field;
 

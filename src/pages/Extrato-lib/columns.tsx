@@ -37,6 +37,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useForm } from "react-hook-form";
+import { useState } from "react";
 
 export type Fluxo = {
   id_fluxo: number;
@@ -74,20 +75,38 @@ export const columns: ColumnDef<Fluxo>[] = [
     cell: ({ row }: { row: any }) => <ActionsCell row={row} />,
   },
 ];
+
 const database = new db();
 function ActionsCell({ row }: { row: any }) {
+  const fluxo_original = row.original; // Get the original date object from the row
+  const [displayValue, setDisplayValue] = useState(fluxo_original.valor);
   const FormSchema = z.object({
     data_fluxo_field: z.date({
       required_error: "A date of birth is required.",
     }),
-    valor_field: z.number(),
+    valor_field: z
+      .string()
+      .min(1, { message: "Valor é obrigatório" })
+      .refine(
+        (val) => {
+          // Remove currency symbols and commas for validation
+          const numericValue = val.replace(/[R$,.\s]/g, "").replace(",", ".");
+          return !isNaN(Number(numericValue)) && isFinite(Number(numericValue));
+        },
+        { message: "Por favor, insira um valor válido" }
+      )
+      .transform((val) => {
+        // For internal use, keep as string
+        return val;
+      }),
     is_entrada_field: z.boolean(),
     tipo_nome_field: z.string(),
     categoria_nome_field: z.string(),
     descricao_fluxo_field: z.string(),
   });
 
-  const fluxo_original = row.original; // Get the original date object from the row
+  console.log(fluxo_original.data_fluxo);
+  console.log(dateParse(fluxo_original.data_fluxo));
 
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema), // Pass only the schema here
@@ -103,7 +122,7 @@ function ActionsCell({ row }: { row: any }) {
 
   interface objTypes {
     data_fluxo_field: Date;
-    valor_field: number;
+    valor_field: string;
     is_entrada_field: boolean;
     tipo_nome_field: string;
     categoria_nome_field: string;
@@ -119,13 +138,54 @@ function ActionsCell({ row }: { row: any }) {
     descricao_fluxo_field: fluxo_original.descricao_fluxo,
   };
 
+  const formatAsCurrency = (value: string) => {
+    // Remove any non-numeric characters except decimal point
+    const numericValue = value.replace(/[^0-9,]/g, "");
+
+    // Format with commas for thousands and decimal
+    let formatted = "";
+    if (numericValue) {
+      // Format as Brazilian currency (R$)
+      const number = numericValue.replace(/\D/g, "");
+      formatted = new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: "USD",
+        minimumFractionDigits: 2,
+      }).format(Number(number) / 100);
+    }
+    return formatted;
+  };
+
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    onChange: (value: string) => void
+  ) => {
+    const rawValue = e.target.value;
+
+    // If the user is deleting the $ sign, clear the input
+    if (rawValue === "") {
+      setDisplayValue("");
+      onChange("");
+      return;
+    }
+
+    // Format the value
+    const formatted = formatAsCurrency(rawValue);
+    setDisplayValue(formatted);
+
+    // Pass the raw value to react-hook-form
+    onChange(formatted);
+  };
+
   async function onSubmit(data: z.infer<typeof FormSchema>) {
+    console.log(fluxo_original.valor.replace("$", ""));
+    console.log(z.coerce.number().parse(fluxo_original.valor.replace("$", "")));
     database.updateFluxo(fluxo_original.id_fluxo, data, original_values);
   }
 
   function dateParse(date: string) {
     const dateTest = new Date(date); // Convert the string to a UTC date object and subtract one day
-    const day = dateTest.getDate() - 1; // Subtract one day
+    const day = dateTest.getDate() + 1; // Subtract one day
     dateTest.setDate(day); // Set the new date
     return dateTest;
   }
@@ -197,21 +257,15 @@ function ActionsCell({ row }: { row: any }) {
                 <FormField
                   control={form.control}
                   name="valor_field"
-                  defaultValue={fluxo_original.valor}
                   render={({ field }) => (
                     <FormItem className="w-full flex justify-start items-center my-1">
                       <Label>Valor</Label>
                       <FormControl>
                         <Input
-                          type="z.number"
-                          placeholder={fluxo_original.valor}
+                          type="text"
                           {...field}
-                          defaultValue={z.coerce
-                            .number()
-                            .parse(fluxo_original.valor.replace("$", ""))}
-                          onChange={(event) =>
-                            field.onChange(+event.target.value)
-                          }
+                          defaultValue={displayValue}
+                          onChange={(e) => handleInputChange(e, field.onChange)}
                         />
                       </FormControl>
                       <FormMessage />
